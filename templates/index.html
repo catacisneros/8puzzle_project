@@ -212,7 +212,11 @@
       
       showLoading("Shuffling puzzle...");
       try {
-        const res = await fetch("/shuffle", { method: "POST" });
+        const res = await fetch("/shuffle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: currentState })
+        });
         const data = await res.json();
         
         if (!res.ok) {

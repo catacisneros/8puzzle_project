@@ -1,6 +1,6 @@
 import heapq
 
-goal_state = [1,2,3,4,5,6,7,8,0]  # 0 = blank
+goal_state = [0,1,2,3,4,5,6,7,8]  # 0 = blank at the beginning
 
 def manhattan(puzzle):
     dist = 0
@@ -26,6 +26,10 @@ def get_neighbors(state):
     return moves
 
 def solve_puzzle(start):
+    # Check if the puzzle is solvable
+    if not is_solvable(start):
+        return []
+        
     heap = [(manhattan(start), 0, start, [])]
     visited = set()
 
@@ -38,3 +42,12 @@ def solve_puzzle(start):
             if tuple(neighbor) not in visited:
                 heapq.heappush(heap, (g + 1 + manhattan(neighbor), g + 1, neighbor, path + [current]))
     return []
+
+def is_solvable(puzzle):
+    # Count inversions
+    inversions = 0
+    for i in range(len(puzzle)):
+        for j in range(i + 1, len(puzzle)):
+            if puzzle[i] != 0 and puzzle[j] != 0 and puzzle[i] > puzzle[j]:
+                inversions += 1
+    return inversions % 2 == 0

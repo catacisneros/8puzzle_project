@@ -60,15 +60,29 @@ def upload():
 @app.route('/shuffle', methods=['POST'])
 def shuffle():
     try:
-        # Generate a solvable shuffle while keeping 0 in the top-left
-        state = [0] + list(range(1, 9))  # Start with 0 in the first position
+        data = request.json
+        if not data or 'state' not in data:
+            logger.error("No state provided in request")
+            return jsonify({'error': 'No state provided'}), 400
+            
+        current_state = data['state']
+        if not isinstance(current_state, list) or len(current_state) != 9:
+            logger.error(f"Invalid state format: {current_state}")
+            return jsonify({'error': 'Invalid state format'}), 400
+            
+        # Keep the empty space (0) in its current position
+        empty_pos = current_state.index(0)
+        non_zero_elements = [x for x in current_state if x != 0]
+        
+        # Shuffle until we get a solvable state
         while True:
-            random.shuffle(state[1:])  # Only shuffle the non-zero elements
-            if is_solvable(state):
+            random.shuffle(non_zero_elements)
+            new_state = non_zero_elements[:empty_pos] + [0] + non_zero_elements[empty_pos:]
+            if is_solvable(new_state):
                 break
         
-        logger.debug(f"Shuffled state: {state}")
-        return jsonify({'state': state})
+        logger.debug(f"Shuffled state: {new_state}")
+        return jsonify({'state': new_state})
     except Exception as e:
         logger.error(f"Error in shuffle: {str(e)}")
         return jsonify({'error': 'Error shuffling puzzle'}), 500
