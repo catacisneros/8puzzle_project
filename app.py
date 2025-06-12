@@ -109,5 +109,31 @@ def solve():
         logger.error(f"Error in solve: {str(e)}")
         return jsonify({'error': 'Error solving puzzle'}), 500
 
+@app.route('/hint', methods=['POST'])
+def hint():
+    try:
+        data = request.json
+        if not data or 'state' not in data:
+            logger.error("No state provided in request")
+            return jsonify({'error': 'No state provided'}), 400
+        
+        current_state = data['state']
+        if not isinstance(current_state, list) or len(current_state) != 9:
+            logger.error(f"Invalid state format: {current_state}")
+            return jsonify({'error': 'Invalid state format'}), 400
+        
+        # Get the solution path
+        path = solve_puzzle(current_state)
+        if not path:
+            return jsonify({'error': 'No solution found'}), 400
+            
+        # Return the next state in the solution path
+        next_state = path[1] if len(path) > 1 else current_state
+        return jsonify({'next_state': next_state})
+    
+    except Exception as e:
+        logger.error(f"Error in hint: {str(e)}")
+        return jsonify({'error': 'Error generating hint'}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
