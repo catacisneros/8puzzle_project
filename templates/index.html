@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>8-Puzzle Solver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h2 {
+      color: #333;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .puzzle-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 20px auto;
+      border: 2px solid #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .puzzle-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    #puzzle {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+      background-color: #333;
+      padding: 2px;
+    }
+    .tile {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      cursor: pointer;
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+    .tile:hover {
+      transform: scale(0.98);
+    }
+    .tile.empty {
+      background-color: transparent;
+      cursor: default;
+    }
+    .tile.movable {
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .file-input-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .status {
+      text-align: center;
+      margin: 10px 0;
+      color: #666;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 10px 0;
+    }
+  </style>
+  <script>
+    let isSolving = false;
+    let currentState = [];
+    let currentSegments = [];
+    let currentBackground = '';
+
+    function getMovableTiles(state) {
+      const emptyIndex = state.indexOf(0);
+      const row = Math.floor(emptyIndex / 3);
+      const col = emptyIndex % 3;
+      const movable = [];
+
+      // Check all four directions
+      if (row > 0) movable.push(emptyIndex - 3); // up
+      if (row < 2) movable.push(emptyIndex + 3); // down
+      if (col > 0) movable.push(emptyIndex - 1); // left
+      if (col < 2) movable.push(emptyIndex + 1); // right
+
+      return movable;
+    }
+
+    function moveTile(index) {
+      if (isSolving) return;
+      
+      const emptyIndex = currentState.indexOf(0);
+      const movableTiles = getMovableTiles(currentState);
+      
+      if (movableTiles.includes(index)) {
+        // Swap the tile with the empty space
+        const newState = [...currentState];
+        newState[emptyIndex] = newState[index];
+        newState[index] = 0;
+        currentState = newState;
+        renderPuzzle(currentState, currentSegments);
+        updateStatus("Tile moved! Keep solving or use the solver.");
+      }
+    }
+
+    function renderPuzzle(state, segments = null) {
+      currentState = state;
+      if (segments) {
+        currentSegments = segments;
+      }
+      
+      const board = document.getElementById("puzzle");
+      board.innerHTML = '';
+      const movableTiles = getMovableTiles(state);
+      
+      state.forEach((num, index) => {
+        const div = document.createElement("div");
+        div.className = `tile ${num === 0 ? 'empty' : ''} ${movableTiles.includes(index) ? 'movable' : ''}`;
+        
+        if (segments && segments[num]) {
+          const img = document.createElement('img');
+          img.src = `data:image/png;base64,${segments[num]}`;
+          div.appendChild(img);
+        }
+        
+        div.onclick = () => moveTile(index);
+        board.appendChild(div);
+      });
+    }
+
+    async function uploadImage() {
+      const file = document.getElementById("img").files[0];
+      if (!file) {
+        alert("Please select an image first!");
+        return;
+      }
+      
+      showLoading("Processing image...");
+      const formData = new FormData();
+      formData.append("image", file);
+      
+      try {
+        const res = await fetch("/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to process image');
+        }
+        
+        currentBackground = data.background;
+        const backgroundImg = document.querySelector('.puzzle-background');
+        if (backgroundImg) {
+          backgroundImg.src = `data:image/png;base64,${data.background}`;
+        }
+        
+        renderPuzzle(data.state, data.segments);
+        updateStatus("Image processed! You can now shuffle or solve the puzzle.");
+      } catch (error) {
+        console.error('Upload error:', error);
+        updateStatus(`Error: ${error.message}`);
+        alert(`Error processing image: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function shufflePuzzle() {
+      if (isSolving) return;
+      
+      showLoading("Shuffling puzzle...");
+      try {
+        const res = await fetch("/shuffle", { method: "POST" });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to shuffle puzzle');
+        }
+        
+        renderPuzzle(data.state, currentSegments);
+        updateStatus("Puzzle shuffled! Try to solve it or use the solver.");
+      } catch (error) {
+        console.error('Shuffle error:', error);
+        updateStatus(`Error: ${error.message}`);
+        alert(`Error shuffling puzzle: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function solvePuzzle() {
+      if (isSolving) return;
+      
+      isSolving = true;
+      showLoading("Solving puzzle...");
+      
+      try {
+        const res = await fetch("/solve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: currentState })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to solve puzzle');
+        }
+        
+        if (data.solution.length === 0) {
+          updateStatus("No solution found!");
+        } else {
+          updateStatus("Solution found! Watch the animation.");
+          animateSolution(data.solution);
+        }
+      } catch (error) {
+        console.error('Solve error:', error);
+        updateStatus(`Error: ${error.message}`);
+        alert(`Error solving puzzle: ${error.message}`);
+      } finally {
+        hideLoading();
+        isSolving = false;
+      }
+    }
+
+    function animateSolution(steps) {
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i >= steps.length) {
+          clearInterval(interval);
+          updateStatus("Solution complete!");
+          return;
+        }
+        renderPuzzle(steps[i], currentSegments);
+        i++;
+      }, 700);
+    }
+
+    function updateStatus(message) {
+      const status = document.getElementById("status");
+      status.textContent = message;
+    }
+
+    function showLoading(message) {
+      const loading = document.getElementById("loading");
+      loading.textContent = message;
+      loading.style.display = "block";
+    }
+
+    function hideLoading() {
+      const loading = document.getElementById("loading");
+      loading.style.display = "none";
+    }
+  </script>
+</head>
+<body>
+  <h2>8-Puzzle Game</h2>
+  
+  <div class="file-input-container">
+    <input type="file" id="img" accept="image/*">
+  </div>
+  
+  <div class="controls">
+    <button onclick="uploadImage()">Upload Image</button>
+    <button onclick="shufflePuzzle()">Shuffle Puzzle</button>
+    <button onclick="solvePuzzle()">Solve (A*)</button>
+  </div>
+  
+  <div class="puzzle-container">
+    <img class="puzzle-background" src="" alt="Puzzle Background">
+    <div id="puzzle"></div>
+  </div>
+  
+  <div id="status" class="status">Upload an image to start!</div>
+  <div id="loading" class="loading"></div>
+</body>
+</html>
