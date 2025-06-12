@@ -60,10 +60,10 @@ def upload():
 @app.route('/shuffle', methods=['POST'])
 def shuffle():
     try:
-        # Generate a solvable shuffle
+        # Generate a solvable shuffle while keeping 0 in the top-left
+        state = [0] + list(range(1, 9))  # Start with 0 in the first position
         while True:
-            state = list(range(9))
-            random.shuffle(state)
+            random.shuffle(state[1:])  # Only shuffle the non-zero elements
             if is_solvable(state):
                 break
         

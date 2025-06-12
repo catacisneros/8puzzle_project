@@ -37,8 +37,15 @@ def generate_puzzle_from_image(file):
         segments = []
         puzzle = []
         
+        # Create 8 pieces (excluding the empty space)
         for i in range(3):
             for j in range(3):
+                # Skip the top-left position (will be empty)
+                if i == 0 and j == 0:
+                    segments.append('')  # Empty segment for the empty space
+                    puzzle.append(0)  # 0 represents empty space
+                    continue
+                
                 # Crop the segment
                 left = j * cell_w
                 upper = i * cell_h
@@ -52,7 +59,7 @@ def generate_puzzle_from_image(file):
                 img_str = base64.b64encode(buffered.getvalue()).decode()
                 segments.append(img_str)
                 
-                # Calculate position for puzzle state
+                # Calculate position for puzzle state (1-8)
                 puzzle.append(i * 3 + j)
         
         # Shuffle the puzzle while ensuring it's solvable
