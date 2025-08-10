@@ -45,6 +45,15 @@ This project implements an interactive 8-puzzle game with an A* algorithm solver
 4. Use the "Shuffle" button to randomize the puzzle
 5. Use the "Solve" button to automatically solve the puzzle using A*
 
+### Main Screen
+![Main Screen](8-puzzle-main-screen.png)
+
+### Shuffle Option
+![Shuffle Option](8-puzzle-shuffle.png)
+
+### Solved Screen
+![Solved Screen](8-puzzle-solved.png)
+
 ## Algorithm Details
 The A* algorithm uses the Manhattan distance heuristic to find the optimal solution path. The solver ensures that:
 - Only solvable configurations are generated
