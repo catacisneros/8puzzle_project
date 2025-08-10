@@ -3,6 +3,9 @@
 ## Project Overview
 This project implements an interactive 8-puzzle game with an A* algorithm solver. The game allows users to upload their own images, which are then split into 8 pieces to create a sliding puzzle. The implementation includes both manual solving capabilities and an automatic solver using the A* algorithm.
 
+## Demo
+https://youtu.be/pUliJoU1Kv4
+
 ## Features
 - Image upload and processing
 - Interactive puzzle interface
